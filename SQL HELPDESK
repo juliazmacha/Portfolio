@@ -1,0 +1,100 @@
+–1–There are three issues that include the words "index" and "Oracle". Find the call_date for each of them
+SELECT call_date, call_ref 
+FROM issue 
+WHERE detail LIKE '%index%' AND detail LIKE '%Oracle%';
+
+–2–Samantha Hall made three calls on 2017-08-14. Show the date and time for each
+SELECT c.first_name, c.last_name, i.call_date 
+FROM caller AS c 
+JOIN issue AS i
+ON c.caller_id = i.caller_id
+WHERE c.first_name = 'Samantha' AND c.last_name = 'Hall'; 
+
+–3–There are 500 calls in the system (roughly). Write a query that shows the number that have each status.
+SELECT status, COUNT(status) AS Volume 
+FROM issue
+GROUP BY status;
+
+–4–Calls are not normally assigned to a manager but it does happen. How many calls have been assigned to staff who are at Manager Level?
+SELECT COUNT(*) AS mlcc
+FROM Issue AS i 
+JOIN Staff AS s
+ON i.Assigned_to = s.Staff_code
+JOIN Level AS l
+ON s.Level_code = l.Level_code
+WHERE l.Manager = 'Y';
+
+
+–5– Show the manager for each shift. Your output should include the shift date and type; also the first and last name of the manager.
+SELECT shift.Shift_date, shift.Shift_type, staff.first_name, staff.last_name
+FROM shift 
+LEFT OUTER JOIN staff 
+ON shift.manager = staff.staff_code; 
+
+–6– List the Company name and the number of calls for those companies with more than 18 calls.
+SELECT cus.Company_name, COUNT(i.call_ref) AS cc 
+FROM issue AS i 
+JOIN caller AS c 
+ON i.caller_id = c.caller_id 
+JOIN customer AS cus 
+ON c.company_ref = cus.company_ref
+GROUP BY cus.company_name 
+HAVING COUNT(i.call_ref) > 18 
+
+–7– Find the callers who have never made a call. Show first name and last name
+
+SELECT c.first_name, c.last_name 
+FROM caller AS c 
+LEFT OUTER JOIN issue AS i 
+ON c.caller_id = i.caller_id 
+WHERE i.caller_id IS NULL; 
+
+–8– For each customer show: Company name, contact name, number of calls where the number of calls is fewer than 5
+
+WITH cte1 AS (
+SELECT cus.company_name, cus.company_ref, cus.contact_id, COUNT(*) AS nc
+FROM customer AS cus 
+JOIN caller AS c 
+ON cus.company_ref = c.company_ref 
+JOIN issue AS i 
+ON c.caller_id = i.caller_id 
+GROUP BY cus.company_name, cus.company_ref, cus.contact_id
+HAVING COUNT(*) <5), 
+
+cte2 AS (
+SELECT first_name, last_name, caller_id 
+FROM caller) 
+
+SELECT cte1.company_name, cte2.first_name, cte2.last_name, cte1.nc
+FROM cte1 
+JOIN cte2 
+ON cte1.contact_id = cte2.caller_id 
+ORDER BY nc DESC; 
+
+–9– For each shift show the number of staff assigned. Beware that some roles may be NULL and that the same person might have been assigned to multiple roles (The roles are 'Manager', 'Operator', 'Engineer1', 'Engineer2').
+WITH cte AS ( 
+SELECT Shift_date, shift_type, Manager AS role 
+FROM shift 
+UNION ALL 
+SELECT Shift_date, shift_type, Operator AS role 
+FROM shift 
+UNION ALL
+SELECT Shift_date, shift_type, Engineer1 AS role 
+FROM shift 
+UNION ALL
+SELECT Shift_date, shift_type, Engineer2 AS role 
+FROM shift) 
+SELECT Shift_date, Shift_type, COUNT(DISTINCT(role)) AS cw 
+FROM cte
+GROUP BY Shift_date, Shift_type; 
+
+–10– Caller 'Harry' claims that the operator who took his most recent call was abusive and insulting. Find out who took the call (full name) and when. 
+SELECT s.first_name, s.last_name, i.call_date
+FROM staff AS s 
+JOIN issue AS i 
+ON s.staff_code = i.taken_by 
+JOIN caller AS c 
+ON i.caller_id = c.caller_id 
+WHERE c.first_name = 'Harry'
+ORDER BY Call_date DESC
+LIMIT 1; 
