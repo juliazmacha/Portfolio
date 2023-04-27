@@ -1,0 +1,86 @@
+-- SKILLS USED: GROUP BY, ORDER BY, COUNT, AVG, ALIASING, ROUND, DESC, CTE, JOIN, CASE WHEN, DATENAME, ASC, DESC, SUBQUERIES, MAX, HAVING  
+
+SELECT * FROM dbo.travel; 
+
+--1-- What are the top 10 countries visited by travelers in this dataset?
+SELECT top 10 Destination, COUNT(*) AS num_visits 
+FROM dbo.travel
+GROUP BY Destination
+ORDER BY COUNT(*) DESC 
+
+--2-- What is the average trip duration for each country in the dataset?
+SELECT destination, AVG(duration_days) AS avg_trip_duration 
+FROM dbo.travel 
+GROUP BY destination; 
+
+--3-- What is the average age of travelers in this dataset?
+SELECT ROUND(AVG(traveler_age),0) AS avg_age 
+FROM dbo.travel; 
+
+--4-- Which nationality has the highest average accommodation cost?
+SELECT top 1 traveler_nationality, AVG(accommodation_cost) AS avg_accommodation_cost 
+FROM dbo.travel 
+GROUP BY traveler_nationality
+ORDER BY avg_accommodation_cost DESC 
+
+--5-- What is the average cost of a trip in this dataset?
+SELECT ROUND(AVG(accommodation_cost + transportation_cost),2) AS avg_cost_total 
+FROM dbo.travel 
+
+--6-- What is the most popular season for travel among travelers in this dataset?
+WITH cte AS (SELECT    CASE 
+      WHEN MONTH(Start_date) BETWEEN 3 AND 5 THEN 'Spring'
+      WHEN MONTH(Start_date) BETWEEN 6 AND 8 THEN 'Summer'
+      WHEN MONTH(Start_date) BETWEEN 9 AND 11 THEN 'Fall'
+      ELSE 'Winter'
+   END AS Season,
+   *
+FROM dbo.travel) 
+SELECT top 1 cte.season, COUNT(dbo.travel.trip_ID) AS number_of_trips
+FROM cte 
+JOIN dbo.travel
+ON cte.trip_id = dbo.travel.trip_id
+GROUP BY cte.season
+ORDER BY COUNT(dbo.travel.trip_ID) DESC 
+
+--7-- What is the most popular mode of transportation among travelers in this dataset?
+SELECT TOP 1 transportation_type, COUNT(transportation_type) AS 'top_transport' 
+FROM dbo.travel 
+GROUP BY transportation_type
+ORDER BY COUNT(transportation_type) DESC 
+
+--8-- What is the most popular day of the week to start the travel among travelers in this dataset?
+SELECT TOP 1 DATENAME(WEEKDAY,start_date) AS 'trip_start_day' 
+FROM dbo.travel 
+ORDER BY DATENAME(WEEKDAY,start_date) ASC 
+
+--9-- What is the average trip duration for each mode of transportation in this dataset?
+SELECT transportation_type, ROUND(AVG(duration_days),0) AS 'avg_duration'  
+FROM dbo.travel 
+WHERE transportation_type IS NOT NULL
+GROUP BY transportation_type
+
+--10--What is the most common gender among travelers in this dataset?
+SELECT TOP 1 traveler_gender as 'the_most_common_gender'
+FROM dbo.travel
+ORDER BY traveler_gender ASC 
+
+--11-- What is the most common combination of age range, gender, and nationality in this dataset?
+SELECT traveler_age, traveler_gender, traveler_nationality, COUNT(*) AS Frequency
+FROM dbo.travel
+GROUP BY traveler_age,  traveler_gender, traveler_nationality 
+HAVING COUNT(*) = ( 
+SELECT MAX(Frequency) 
+FROM (SELECT COUNT(*) AS Frequency 
+FROM dbo.travel
+GROUP BY traveler_age,  traveler_gender, traveler_nationality) AS T )  
+
+--12-- What is the most common combination of accommodation and transportation type? 
+SELECT accommodation_type, transportation_type, COUNT(*) AS Frequency
+FROM dbo.travel
+GROUP BY accommodation_type, transportation_type
+HAVING COUNT(*) = ( 
+SELECT MAX(Frequency) 
+FROM (SELECT COUNT(*) AS Frequency 
+FROM dbo.travel
+GROUP BY accommodation_type, transportation_type) AS T ) 
